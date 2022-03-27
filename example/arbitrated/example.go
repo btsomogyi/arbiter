@@ -2,6 +2,7 @@ package arbitrated
 
 import (
 	"fmt"
+	"github.com/btsomogyi/arbiter/example"
 
 	"github.com/btsomogyi/arbiter"
 
@@ -10,14 +11,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ErrFailedDoTheWork indicates a failure to perform the changes associated with
-// an updated version.
-var ErrFailedDoTheWork error
-
-// ErrKeyNotFound indicates a request to fetch version associated with a key did
-// not find that key installed.
-var ErrKeyNotFound error
-
 func init() {
 	// Initialize GRPC codes for ErrFailedDoTheWork
 	st1 := status.New(codes.ResourceExhausted, "work incomplete")
@@ -25,7 +18,7 @@ func init() {
 		ResourceName: "Version",
 		Description:  "The requested side effects were not completed.  So sad.",
 	}
-	ErrFailedDoTheWork = embedGrpcStatus(st1, ri)
+	example.ErrFailedDoTheWork = embedGrpcStatus(st1, ri)
 
 	// Initialize GRPC codes for ErrKeyNotFound
 	st2 := status.New(codes.NotFound, "key not found")
@@ -35,7 +28,7 @@ func init() {
 	}
 	br := &errdetails.BadRequest{}
 	br.FieldViolations = append(br.FieldViolations, fv)
-	ErrKeyNotFound = embedGrpcStatus(st2, br)
+	example.ErrKeyNotFound = embedGrpcStatus(st2, br)
 }
 
 // VersionerRequest implements the Arbiter package 'Request' interface to be

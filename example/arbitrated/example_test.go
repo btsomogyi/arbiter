@@ -12,7 +12,7 @@ import (
 
 	"github.com/btsomogyi/arbiter"
 	pb "github.com/btsomogyi/arbiter/example/examplepb"
-	"github.com/sirupsen/logrus/hooks/test"
+	"github.com/btsomogyi/arbiter/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -91,7 +91,7 @@ func Benchmark_randomRequests(b *testing.B) {
 		b.Run(fmt.Sprintf("%d reqs @ %d", bm.Requests, bm.Concurrency), func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				b.StopTimer()
-				logger, hook := test.NewNullLogger()
+				logger := logging.NewNoopLogger()
 
 				// Start GRPC Server
 				supervisorOptions := arbiter.SetLogger(logger)
@@ -196,9 +196,6 @@ func Benchmark_randomRequests(b *testing.B) {
 
 				grpcServer.GracefulStop()
 
-				for _, entry := range hook.AllEntries() {
-					b.Log(entry)
-				}
 			}
 		})
 	}

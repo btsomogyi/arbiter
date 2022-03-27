@@ -2,6 +2,7 @@ package locking
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/btsomogyi/arbiter/example"
@@ -13,47 +14,37 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ErrFailedDoTheWork indicates a failure to perform the changes associated with
-// an updated version.
-var ErrFailedDoTheWork = fmt.Errorf("failed to do the thing")
-
-// ErrInferiorVersion indicates a request for a lesser version was made and rejected.
-var ErrInferiorVersion = fmt.Errorf("version requested is outdated")
-
 // Versioner implements a trivial record store of Element versions.  Versions are
 // considered more recent if 'Version' is higher.
 type Versioner struct {
-	//Elements map[int64]int64
-	Elements example.ElementStore
+	Elements LockingStore
 	workFunc func() error
 	//lock     sync.Mutex
 	pb.UnimplementedVersionerServer
 }
 
-func (v *Versioner) getElementVersion(key int64) (int64, error) {
-	//v.lock.Lock()
-	//defer v.lock.Unlock()
-	val, ok := v.Elements.Get(key)
-	if ok {
-		return val, nil
+func (v *Versioner) getElementVersion(key int64) (*int64, error) {
+	val, err := v.Elements.Get(key)
+	if err != nil {
+		st := status.New(codes.NotFound, example.ErrKeyNotFound.Error())
+		fv := &errdetails.BadRequest_FieldViolation{
+			Field:       "Key",
+			Description: "The requested key was not found in the stored data",
+		}
+		br := &errdetails.BadRequest{}
+		br.FieldViolations = append(br.FieldViolations, fv)
+		return nil, embedGrpcStatus(st, fv)
 	}
-	st := status.New(codes.NotFound, "key not found")
-	fv := &errdetails.BadRequest_FieldViolation{
-		Field:       "Key",
-		Description: "The requested key was not found in the stored data",
-	}
-	br := &errdetails.BadRequest{}
-	br.FieldViolations = append(br.FieldViolations, fv)
-	return 0, embedGrpcStatus(st, fv)
+	return val, nil
 }
 
 func (v *Versioner) setElementVersionIfGreater(key, version int64) error {
-	//v.lock.Lock()
-	//defer v.lock.Unlock()
-	current, ok := v.Elements.Get(key)
-	if !ok || current < version {
+	current, err := v.Elements.Get(key)
+	if (err != nil && errors.Is(err, example.ErrKeyNotFound)) || *current < version {
 		v.Elements.Update(key, version)
 		return nil
+	} else if err != nil {
+		return err
 	}
 	st := status.New(codes.AlreadyExists, "request superseded")
 	ei := &errdetails.ErrorInfo{
@@ -68,7 +59,7 @@ func (v *Versioner) setElementVersionIfGreater(key, version int64) error {
 	return embedGrpcStatus(st, ei)
 }
 
-// config contains the adjustable configuraiton of the Versioner.
+// config contains the adjustable configuration of the Versioner.
 type config struct {
 	workFunc func() error
 }
@@ -87,7 +78,7 @@ func SetWorkFunc(wf func() error) VersionerOption {
 // NewVersioner constructs and returns an empty Versioner.
 func NewVersioner(opts ...VersionerOption) *Versioner {
 	v := &Versioner{
-		Elements: make(map[int64]int64),
+		Elements: NewElementStore(),
 	}
 	return v
 }
@@ -125,7 +116,7 @@ func (v *Versioner) GetVersion(ctx context.Context, req *pb.GetVersionRequest) (
 
 	return &pb.VersionResponse{
 		Key:     &pb.Key{Id: key},
-		Version: &pb.Version{Id: version},
+		Version: &pb.Version{Id: *version},
 	}, nil
 }
 
@@ -144,8 +135,7 @@ func doTheWork(ctx context.Context, version int64) error {
 	// that attempts to update to prime versions encounter an error (for a
 	// deterministic but sparse error condition).
 
-	if isPrime(version) {
-		//return fmt.Errorf("%w: key %d version %d", ErrFailedDoTheWork, key, version)
+	if example.IsPrime(version) {
 		st := status.New(codes.ResourceExhausted, "work incomplete")
 		ri := &errdetails.ResourceInfo{
 			ResourceName: "Version",
@@ -160,16 +150,4 @@ func doTheWork(ctx context.Context, version int64) error {
 		return st.Err()
 	}
 	return nil
-}
-
-func isPrime(number int64) bool {
-	if number == 0 || number == 1 {
-		return false
-	}
-	for i := int64(2); i <= number/2; i++ {
-		if number%i == 0 {
-			return false
-		}
-	}
-	return true
 }

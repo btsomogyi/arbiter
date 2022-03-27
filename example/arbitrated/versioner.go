@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/btsomogyi/arbiter/example"
+	"github.com/golang/protobuf/proto"
+	//"google.golang.org/protobuf/proto"
 
 	"github.com/btsomogyi/arbiter"
-	"github.com/btsomogyi/arbiter/example"
 	"github.com/btsomogyi/arbiter/example/examplepb"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 // Versioner implements the Examplepb GRPC interface using the trivial record backing
-// store of an ElementStore.
+// store of an SimpleStore.
 type Versioner struct {
-	Elements   example.ElementStore
+	Elements   example.Store
 	workFunc   func() error
 	Supervisor *arbiter.Supervisor
 	examplepb.UnimplementedVersionerServer
@@ -42,7 +43,7 @@ func SetWorkFunc(wf func() error) VersionerOption {
 // NewVersioner constructs and returns an empty Versioner.
 func NewVersioner(s *arbiter.Supervisor, opts ...VersionerOption) *Versioner {
 	v := &Versioner{
-		Elements:   example.NewElementStore(),
+		Elements:   NewSimpleStore(),
 		Supervisor: s,
 	}
 	return v
@@ -58,19 +59,19 @@ func (v *Versioner) GetVersion(ctx context.Context, req *examplepb.GetVersionReq
 		id: key,
 		valid: func() error {
 			// Only checking if key is found, ignoring returned value
-			_, ok := v.Elements.Get(key)
-			if !ok {
-				return ErrKeyNotFound
+			_, err := v.Elements.Get(key)
+			if err != nil {
+				return err
 			}
 			return nil
 		},
 		finalize: func() error {
-			v, ok := v.Elements.Get(key)
-			if !ok {
-				return ErrKeyNotFound
+			v, err := v.Elements.Get(key)
+			if err != nil {
+				return err
 			}
 			// Assign returned value to enclosed 'version' variable
-			version = v
+			version = *v
 			return nil
 		},
 	}
@@ -115,8 +116,8 @@ func (v *Versioner) UpdateVersion(ctx context.Context, req *examplepb.UpdateVers
 		// that attempts to update to prime versions encounter an error (for a
 		// deterministic but sparse error condition).
 
-		if isPrime(version) {
-			return ErrFailedDoTheWork
+		if example.IsPrime(version) {
+			return example.ErrFailedDoTheWork
 		}
 		return nil
 	}
@@ -131,6 +132,7 @@ func (v *Versioner) UpdateVersion(ctx context.Context, req *examplepb.UpdateVers
 }
 
 func embedGrpcStatus(st *status.Status, msg proto.Message) error {
+	//proto.MessageV1(msg)
 	st, err := st.WithDetails(msg)
 	if err != nil {
 		// If this errored, it will always error, so panic so we can figure out why.
@@ -139,18 +141,18 @@ func embedGrpcStatus(st *status.Status, msg proto.Message) error {
 	return st.Err()
 }
 
-// isGreaterThanCurrent checks if the version provided is greater than the version returned by ElementStore.
+// isGreaterThanCurrent checks if the version provided is greater than the version returned by SimpleStore.
 // A nil error return indicates that the provided key/value *is* greaten that currently persisted.
-func isGreaterThanCurrent(db example.ElementStore, key int64, version int64) error {
-	current, err := db.getVersion(key)
+func isGreaterThanCurrent(db example.Store, key int64, version int64) error {
+	current, err := db.Get(key)
 	if err != nil {
-		if errors.Is(err, ErrDbKeyNotFound) {
+		if errors.Is(err, example.ErrKeyNotFound) {
 			// key not found so anything is greater than empty
 			return nil
 		}
 		return err
 	}
-	if version > current {
+	if version > *current {
 		return nil
 	}
 
@@ -166,16 +168,4 @@ func isGreaterThanCurrent(db example.ElementStore, key int64, version int64) err
 		},
 	}
 	return embedGrpcStatus(st, ei)
-}
-
-func isPrime(number int64) bool {
-	if number == 0 || number == 1 {
-		return false
-	}
-	for i := int64(2); i <= number/2; i++ {
-		if number%i == 0 {
-			return false
-		}
-	}
-	return true
 }
