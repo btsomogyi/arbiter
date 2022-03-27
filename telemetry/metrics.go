@@ -1,15 +1,20 @@
 package telemetry
 
-// Static strings used in metric definitions.
-const (
-	component              = "arbiter"
-	QueueChanDepthDesc     = "QueueChanDepth"     // measure the main supervisor input channel (unprocessed messages)
-	ProcessingMapDepthDesc = "ProcessingMapDepth" // measure number of concurrently processed requests
-	WaitingMapDepthDesc    = "WaitingMapDepth"    // measures the number of requests currently waiting for in-flight reqs to finish
-	MessageDesc            = "Message"            // time metrics for messages passed between Supervisor and Worker
-	WorkDesc               = "Worktime"           // time to complete the work being arbitrated (passed in closure function)
-	TransactionDesc        = "Transaction"        // complete transaction time including arbiter overhead
-)
+// Instrumentor is the interface to be implemented by any concrete telemetry type.
+type Instrumentor interface {
+	QueueChanDepth(int64)
+	IncQueueChanDepth()
+	DecQueueChanDepth()
+	ProcessingMapDepth(int64)
+	IncProcessingMapDepth()
+	DecProcessingMapDepth()
+	WaitingMapDepth(int64)
+	IncWaitingMapDepth()
+	DecWaitingMapDepth()
+	Messages(float64, ...Labels)
+	Worktime(float64, ...Labels)
+	Transactions(float64, ...Labels)
+}
 
 // Labels are used to signify dimensions of the stored metrics (states/results/statuses).
 type Labels map[string]string
@@ -78,20 +83,4 @@ var MetricHistogramLabels = map[MetricHistogram][]string{
 	Transactions: {
 		"signal",
 	},
-}
-
-// Instrumentor is the interface to be implemented by any concrete telemetry type.
-type Instrumentor interface {
-	QueueChanDepth(int64)
-	IncQueueChanDepth()
-	DecQueueChanDepth()
-	ProcessingMapDepth(int64)
-	IncProcessingMapDepth()
-	DecProcessingMapDepth()
-	WaitingMapDepth(int64)
-	IncWaitingMapDepth()
-	DecWaitingMapDepth()
-	Messages(float64, ...Labels)
-	Worktime(float64, ...Labels)
-	Transactions(float64, ...Labels)
 }
