@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package examplepb;
+
+option go_package = "github.com/btsomogyi/arbiter/example/examplepb";
+
+service Versioner {
+	// Versioner RPCs.
+	rpc UpdateVersion(UpdateVersionRequest) returns (VersionResponse);
+    rpc GetVersion(GetVersionRequest) returns (VersionResponse);
+}
+
+// Updates a resource of Key to version provided.
+message UpdateVersionRequest {
+	Key key = 1;
+	Version version = 2;
+	Data data = 3;
+}
+
+// Requests the current version of the provided keyed resource.
+message GetVersionRequest {
+	Key key = 1;
+}
+
+// Response containing the current version of the keyed resource.
+message VersionResponse {
+	Key key = 1;
+	Version version = 2;
+}
+
+message Key {
+	int64 id = 1;
+}
+
+message Version {
+	int64 id = 1;
+}
+
+message Data {
+	string id = 1;
+}
