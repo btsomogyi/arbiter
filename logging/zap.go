@@ -13,7 +13,7 @@ func NewZapLogger(ws zapcore.WriteSyncer, options ...Option) *ZapLogger {
 	l := zap.New(zc)
 	zl := &ZapLogger{
 		logger: l,
-		sugar: l.Sugar(),
+		sugar:  l.Sugar(),
 	}
 	for _, option := range options {
 		option.apply(zl)
@@ -23,7 +23,7 @@ func NewZapLogger(ws zapcore.WriteSyncer, options ...Option) *ZapLogger {
 
 type ZapLogger struct {
 	logger *zap.Logger
-	sugar *zap.SugaredLogger
+	sugar  *zap.SugaredLogger
 }
 
 // An Option configures a ZapLogger.
@@ -50,7 +50,7 @@ func Development() Option {
 }
 
 func ApplyZapOption(option zap.Option) Option {
-	return zapOptionFunc(func(logger *ZapLogger){
+	return zapOptionFunc(func(logger *ZapLogger) {
 		logger.logger = logger.logger.WithOptions(option)
 	})
 }

@@ -380,16 +380,16 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 	defer df()
 
 	s.logger.Debug("WithWorker function entered", []logging.LogTuple{
-		{"key",    w.request.GetKey()},
+		{"key", w.request.GetKey()},
 		{"status", w.status.String()},
 	})
 
 	w.sendBegin()
 	beginResponse := w.recvResponse(beginState, ceaseSignal)
 
-	s.logger.Debug("WithWorker received beginResponse" , []logging.LogTuple{
-		{"key",      w.request.GetKey()},
-		{"status",   w.status.String()},
+	s.logger.Debug("WithWorker received beginResponse", []logging.LogTuple{
+		{"key", w.request.GetKey()},
+		{"status", w.status.String()},
 		{"response", beginResponse.sig.String()},
 	})
 
@@ -399,7 +399,7 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 			"signal": failureSignal.String(),
 		})
 		s.logger.Debug("WithWorker transaction completed with error", []logging.LogTuple{
-			{"key",      w.request.GetKey()},
+			{"key", w.request.GetKey()},
 			{"duration", duration},
 			{"response", beginResponse.sig.String()},
 		})
@@ -417,7 +417,7 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 			"signal": failureSignal.String(),
 		})
 		s.logger.Debug("WithWorker transaction completed with closure error", []logging.LogTuple{
-			{"key",      w.request.GetKey()},
+			{"key", w.request.GetKey()},
 			{"duration", duration},
 			{"worktime", workDuration},
 			{"response", beginResponse.sig.String()},
@@ -431,8 +431,8 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 		"signal": successSignal.String(),
 	})
 
-	s.logger.Debug("WithWorker completed provided work function",[]logging.LogTuple{
-		{"key",    w.request.GetKey()},
+	s.logger.Debug("WithWorker completed provided work function", []logging.LogTuple{
+		{"key", w.request.GetKey()},
 		{"status", w.status.String()},
 	})
 
@@ -444,8 +444,8 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 		s.metrics.Transactions(duration, telemetry.Labels{
 			"signal": failureSignal.String(),
 		})
-		s.logger.Debug("WithWorker transaction completed with error",[]logging.LogTuple{
-			{"key",      w.request.GetKey()},
+		s.logger.Debug("WithWorker transaction completed with error", []logging.LogTuple{
+			{"key", w.request.GetKey()},
 			{"duration", duration},
 			{"worktime", workDuration},
 			{"response", endResponse.sig.String()},
@@ -453,9 +453,9 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 		return endResponse.err
 	}
 
-	s.logger.Debug("WithWorker received endResponse",[]logging.LogTuple{
-		{"key",      w.request.GetKey()},
-		{"status",   w.status.String()},
+	s.logger.Debug("WithWorker received endResponse", []logging.LogTuple{
+		{"key", w.request.GetKey()},
+		{"status", w.status.String()},
 		{"response", endResponse.sig.String()},
 	})
 
@@ -463,8 +463,8 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 	s.metrics.Transactions(w.duration(), telemetry.Labels{
 		"signal": successSignal.String(),
 	})
-	s.logger.Debug("WithWorker transaction completed",[]logging.LogTuple{
-		{"key",      w.request.GetKey()},
+	s.logger.Debug("WithWorker transaction completed", []logging.LogTuple{
+		{"key", w.request.GetKey()},
 		{"duration", duration},
 		{"worktime", workDuration},
 	})

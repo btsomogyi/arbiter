@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	a "github.com/btsomogyi/arbiter"
-	at "github.com/btsomogyi/arbiter/telemetry"
 	"github.com/btsomogyi/arbiter/logging"
+	at "github.com/btsomogyi/arbiter/telemetry"
 
 	"github.com/davecgh/go-spew/spew"
 )
