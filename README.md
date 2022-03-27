@@ -21,6 +21,7 @@ Arbitrary gated functions:
 - decide to proceed, or drop 
 
 FUTURE:
+- Go generics for message key (go 1.18)
 - GoDocs
 - depth of command queue per key (idempotent = 1)
 - rate limit implementation based on configurable weighting
