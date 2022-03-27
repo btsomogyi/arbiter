@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/zap/zapcore"
 	"math/rand"
 	"sync"
 	"testing"
 
 	a "github.com/btsomogyi/arbiter"
 	at "github.com/btsomogyi/arbiter/telemetry"
+	"github.com/btsomogyi/arbiter/logging"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -1064,14 +1065,8 @@ func testSetupWithPollingAndSupervisorLogging(t *testing.T) (*a.Supervisor, chan
 		done <- struct{}{}
 	}
 
-	logger := logrus.New()
-	logger.SetOutput(testWriter{t})
-	logger.SetLevel(logrus.DebugLevel)
-	logger.SetFormatter(&logrus.TextFormatter{
-		DisableColors: true,
-		FullTimestamp: true,
-	})
-	//logger.Log(logrus.InfoLevel, "Testing the logrus logger")
+	ws := zapcore.AddSync(testWriter{t})
+	logger := logging.NewZapLogger(ws)
 	supervisorOptions := []a.SupervisorOption{
 		a.SetPollFunction(pollDone),
 		a.SetLogger(logger),

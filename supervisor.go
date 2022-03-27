@@ -2,12 +2,10 @@ package arbiter
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"time"
 
+	"github.com/btsomogyi/arbiter/logging"
 	"github.com/btsomogyi/arbiter/telemetry"
-	"github.com/sirupsen/logrus"
 )
 
 // Supervisor contains the primary channels used for synchronization between Worker and Supervisor.
@@ -17,7 +15,7 @@ type Supervisor struct {
 	processing  *messageMap
 	waiting     *messageMap
 	metrics     telemetry.Instrumentor
-	logger      *logrus.Logger
+	logger      logging.Logger
 	pollDone    func()
 	initialized bool
 }
@@ -27,7 +25,7 @@ type config struct {
 	channelDepth uint
 	Instrument   telemetry.Instrumentor
 	pollDone     func()
-	logger       *logrus.Logger
+	logger       logging.Logger
 }
 
 // configuration is the default configuration of the Supervisor.
@@ -58,7 +56,7 @@ func SetChannelDepth(d uint) SupervisorOption {
 // SetLogger provides a logrus compatible for emitting log messages.
 // If not provided, a no-op logger is created during supervisor
 // initialization.
-func SetLogger(l *logrus.Logger) SupervisorOption {
+func SetLogger(l logging.Logger) SupervisorOption {
 	return func(c *config) error {
 		c.logger = l
 		return nil
@@ -100,11 +98,8 @@ func (s *Supervisor) init(c *config) {
 		s.logger = c.logger
 	}
 	if s.logger == nil {
-		// Create default silent logger if uninitialized.  Set level to eliminate
-		// any log processing overhead (optimized inline by logrus).
-		s.logger = logrus.New()
-		s.logger.SetLevel(logrus.PanicLevel)
-		s.logger.SetOutput(ioutil.Discard)
+		// Create default silent logger if uninitialized.
+		s.logger = logging.NewNoopLogger()
 	}
 	if s.metrics == nil {
 		s.metrics = telemetry.NewNopInstrumentor()
@@ -142,26 +137,26 @@ func (s *Supervisor) Process() {
 				m.setLatency()
 				s.processBegin(m)
 				ms := m.getStatus()
-				s.logger.WithFields(logrus.Fields{
-					"key":             m.request().GetKey(),
-					"duration":        m.getLatency(),
-					"state":           beginState.String(),
-					"results":         ms.results(),
-					"waitlist":        ms.waitlist(),
-					"finalizefailure": ms.finalizefailure(),
-				}).Debug("Supervisor completed begin message processing")
+				s.logger.Debug("Supervisor completed begin message processing", []logging.LogTuple{
+					{"key", m.request().GetKey()},
+					{"duration", m.getLatency()},
+					{"state", beginState.String()},
+					{"results", ms.results()},
+					{"waitlist", ms.waitlist()},
+					{"finalizefailure", ms.finalizefailure()},
+				})
 			case *endMessage:
 				m.setLatency()
 				s.processEnd(m)
 				ms := m.getStatus()
-				s.logger.WithFields(logrus.Fields{
-					"key":             m.request().GetKey(),
-					"duration":        m.getLatency(),
-					"state":           beginState.String(),
-					"results":         ms.results(),
-					"waitlist":        ms.waitlist(),
-					"finalizefailure": ms.finalizefailure(),
-				}).Debug("Supervisor completed end message processing")
+				s.logger.Debug("Supervisor completed end message processing", []logging.LogTuple{
+					{"key", m.request().GetKey()},
+					{"duration", m.getLatency()},
+					{"state", beginState.String()},
+					{"results", ms.results()},
+					{"waitlist", ms.waitlist()},
+					{"finalizefailure", ms.finalizefailure()},
+				})
 			}
 		case <-s.terminate:
 			return
@@ -177,7 +172,9 @@ func (s *Supervisor) processBegin(m message) {
 	if !ok {
 		// This is by design an unreachable condition, but left in to detect future package modifications that
 		// may violate that design. Only messages with underlying `beginMessage` type are sent to processBegin().
-		panic(fmt.Sprintf("Non-beginMessage sent to processBegin() key %v", m.request().GetKey()))
+		s.logger.DPanic("Non-beginMessage sent to processBegin()", []logging.LogTuple{
+			{Field: "request key", Value: m.request().GetKey()},
+		})
 	}
 
 	// Check if valid, and reject if not.
@@ -268,13 +265,13 @@ func (s *Supervisor) activateMessage(m message) {
 // Either successSignal or failureSignal result in purging of map data for {id, version} tuple and promoting
 // any waiting versions to processing map (with corresponding send of message).
 func (s *Supervisor) processEnd(m message) {
-	reqKey := m.request().GetKey()
-
 	em, ok := m.(*endMessage)
 	if !ok {
 		// This is by design an unreachable condition, but left in to detect future package modifications that
 		// may violate that design. Only messages with underlying `endMessage` type are sent to processEnd().
-		panic(fmt.Sprintf("Non-endMessage sent to processEnd() key %v", reqKey))
+		s.logger.DPanic("Non-endMessage sent to processEnd()", []logging.LogTuple{
+			{Field: "request key", Value: m.request().GetKey()},
+		})
 	}
 
 	switch em.signal {
@@ -296,7 +293,10 @@ func (s *Supervisor) processEnd(m message) {
 	default:
 		// This is by design an unreachable condition, but left in to detect future modifications that
 		// may violate that design.  The worker code has no means of setting an invalid value.
-		panic(fmt.Sprintf("Unexpected status %v sent in end message key %v", em.signal, reqKey))
+		s.logger.DPanic("Unexpected status sent in end message", []logging.LogTuple{
+			{Field: "request key", Value: m.request().GetKey()},
+			{Field: "message signal", Value: em.signal},
+		})
 	}
 
 	s.purgeMessage(m)
@@ -379,30 +379,30 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 	w, df := s.generateWorker(ctx, r)
 	defer df()
 
-	s.logger.WithFields(logrus.Fields{
-		"key":    w.request.GetKey(),
-		"status": w.status.String(),
-	}).Debug("WithWorker function entered")
+	s.logger.Debug("WithWorker function entered", []logging.LogTuple{
+		{"key",    w.request.GetKey()},
+		{"status", w.status.String()},
+	})
 
 	w.sendBegin()
 	beginResponse := w.recvResponse(beginState, ceaseSignal)
 
-	s.logger.WithFields(logrus.Fields{
-		"key":      w.request.GetKey(),
-		"status":   w.status.String(),
-		"response": beginResponse.sig.String(),
-	}).Debug("WithWorker received beginResponse")
+	s.logger.Debug("WithWorker received beginResponse" , []logging.LogTuple{
+		{"key",      w.request.GetKey()},
+		{"status",   w.status.String()},
+		{"response", beginResponse.sig.String()},
+	})
 
 	if beginResponse.sig != proceedSignal {
 		duration := w.duration()
 		s.metrics.Transactions(duration, telemetry.Labels{
 			"signal": failureSignal.String(),
 		})
-		s.logger.WithFields(logrus.Fields{
-			"key":      w.request.GetKey(),
-			"duration": duration,
-			"response": beginResponse.sig.String(),
-		}).Debug("WithWorker transaction completed with error")
+		s.logger.Debug("WithWorker transaction completed with error", []logging.LogTuple{
+			{"key",      w.request.GetKey()},
+			{"duration", duration},
+			{"response", beginResponse.sig.String()},
+		})
 		return beginResponse.err
 	}
 
@@ -416,12 +416,12 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 		s.metrics.Transactions(duration, telemetry.Labels{
 			"signal": failureSignal.String(),
 		})
-		s.logger.WithFields(logrus.Fields{
-			"key":      w.request.GetKey(),
-			"duration": duration,
-			"worktime": workDuration,
-			"response": beginResponse.sig.String(),
-		}).Debug("WithWorker transaction completed with closure error")
+		s.logger.Debug("WithWorker transaction completed with closure error", []logging.LogTuple{
+			{"key",      w.request.GetKey()},
+			{"duration", duration},
+			{"worktime", workDuration},
+			{"response", beginResponse.sig.String()},
+		})
 		return err
 	}
 
@@ -431,10 +431,10 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 		"signal": successSignal.String(),
 	})
 
-	s.logger.WithFields(logrus.Fields{
-		"key":    w.request.GetKey(),
-		"status": w.status.String(),
-	}).Debug("WithWorker completed provided work function")
+	s.logger.Debug("WithWorker completed provided work function",[]logging.LogTuple{
+		{"key",    w.request.GetKey()},
+		{"status", w.status.String()},
+	})
 
 	w.sendEnd()
 	endResponse := w.recvResponse(endState, failureSignal)
@@ -444,29 +444,29 @@ func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.
 		s.metrics.Transactions(duration, telemetry.Labels{
 			"signal": failureSignal.String(),
 		})
-		s.logger.WithFields(logrus.Fields{
-			"key":      w.request.GetKey(),
-			"duration": duration,
-			"worktime": workDuration,
-			"response": endResponse.sig.String(),
-		}).Debug("WithWorker transaction completed with error")
+		s.logger.Debug("WithWorker transaction completed with error",[]logging.LogTuple{
+			{"key",      w.request.GetKey()},
+			{"duration", duration},
+			{"worktime", workDuration},
+			{"response", endResponse.sig.String()},
+		})
 		return endResponse.err
 	}
 
-	s.logger.WithFields(logrus.Fields{
-		"key":      w.request.GetKey(),
-		"status":   w.status.String(),
-		"response": endResponse.sig.String(),
-	}).Debug("WithWorker received endResponse")
+	s.logger.Debug("WithWorker received endResponse",[]logging.LogTuple{
+		{"key",      w.request.GetKey()},
+		{"status",   w.status.String()},
+		{"response", endResponse.sig.String()},
+	})
 
 	duration := w.duration()
 	s.metrics.Transactions(w.duration(), telemetry.Labels{
 		"signal": successSignal.String(),
 	})
-	s.logger.WithFields(logrus.Fields{
-		"key":      w.request.GetKey(),
-		"duration": duration,
-		"worktime": workDuration,
-	}).Debug("WithWorker transaction completed")
+	s.logger.Debug("WithWorker transaction completed",[]logging.LogTuple{
+		{"key",      w.request.GetKey()},
+		{"duration", duration},
+		{"worktime", workDuration},
+	})
 	return nil
 }
