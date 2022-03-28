@@ -3,6 +3,7 @@ package arbitrated
 import (
 	"context"
 	"fmt"
+	"github.com/btsomogyi/arbiter"
 	"math/rand"
 	"net"
 	"testing"
@@ -10,7 +11,6 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/btsomogyi/arbiter"
 	pb "github.com/btsomogyi/arbiter/example/examplepb"
 	"github.com/btsomogyi/arbiter/logging"
 	"google.golang.org/grpc"

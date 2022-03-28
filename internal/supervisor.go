@@ -1,7 +1,8 @@
-package arbiter
+package internal
 
 import (
 	"context"
+	"github.com/btsomogyi/arbiter/interfaces"
 	"time"
 
 	"github.com/btsomogyi/arbiter/logging"
@@ -53,9 +54,8 @@ func SetChannelDepth(d uint) SupervisorOption {
 	}
 }
 
-// SetLogger provides a logrus compatible for emitting log messages.
-// If not provided, a no-op logger is created during supervisor
-// initialization.
+// SetLogger provides a compatible structured logger for emitting log messages.
+// If not provided, a no-op logger is created during supervisor initialization.
 func SetLogger(l logging.Logger) SupervisorOption {
 	return func(c *config) error {
 		c.logger = l
@@ -63,8 +63,7 @@ func SetLogger(l logging.Logger) SupervisorOption {
 	}
 }
 
-// SetPollFunction sets the pollDone function in Supervisor for
-// deterministic testing.
+// SetPollFunction sets the pollDone function in Supervisor for deterministic testing.
 func SetPollFunction(f func()) SupervisorOption {
 	return func(c *config) error {
 		c.pollDone = f
@@ -356,7 +355,7 @@ func (s *Supervisor) pushMessageMetrics(m message) {
 // passed by value by the consumer which generated the Worker, all messages will
 // continue to have this same unique signature value, disambiguating messages
 // originating from this Worker from messages originating from other Workers.
-func (s *Supervisor) generateWorker(ctx context.Context, r Request) (*worker, func()) {
+func (s *Supervisor) generateWorker(ctx context.Context, r interfaces.Request) (*worker, func()) {
 	w := worker{
 		queue:    s.queue,
 		metrics:  s.metrics,
@@ -375,7 +374,7 @@ func (s *Supervisor) generateWorker(ctx context.Context, r Request) (*worker, fu
 // communication with the Arbiter Supervisor.  This allows all machinery of
 // interaction between worker and supervisor to be predetermined and private
 // to Arbiter package.
-func (s *Supervisor) WithWorker(ctx context.Context, r Request, fn func(context.Context) error) error {
+func (s *Supervisor) WithWorker(ctx context.Context, r interfaces.Request, fn func(context.Context) error) error {
 	w, df := s.generateWorker(ctx, r)
 	defer df()
 

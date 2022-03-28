@@ -1,15 +1,16 @@
-package arbiter_test
+package internal_test
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/btsomogyi/arbiter/interfaces"
+	a "github.com/btsomogyi/arbiter/internal"
 	"go.uber.org/zap/zapcore"
 	"math/rand"
 	"sync"
 	"testing"
 
-	a "github.com/btsomogyi/arbiter"
 	"github.com/btsomogyi/arbiter/logging"
 	at "github.com/btsomogyi/arbiter/telemetry"
 
@@ -1200,7 +1201,7 @@ func (t *testReq) GetKey() int64 {
 	return t.key
 }
 
-func (t *testReq) Supersedes(o a.Request) error {
+func (t *testReq) Supersedes(o interfaces.Request) error {
 	otherTestReq, ok := o.(*testReq)
 	if !ok {
 		return fmt.Errorf("Failed to cast request as 'testReq'")

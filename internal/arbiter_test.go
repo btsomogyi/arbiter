@@ -1,4 +1,4 @@
-package arbiter
+package internal
 
 import (
 	"testing"

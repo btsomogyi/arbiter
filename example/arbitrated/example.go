@@ -3,8 +3,7 @@ package arbitrated
 import (
 	"fmt"
 	"github.com/btsomogyi/arbiter/example"
-
-	"github.com/btsomogyi/arbiter"
+	"github.com/btsomogyi/arbiter/interfaces"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
@@ -52,7 +51,7 @@ func (v *VersionerRequest) GetValue() int64 {
 
 // Supersedes determines whether a given request has a higher version number
 // than the request being compared.
-func (v *VersionerRequest) Supersedes(o arbiter.Request) error {
+func (v *VersionerRequest) Supersedes(o interfaces.Request) error {
 	otherVersionReq, ok := o.(*VersionerRequest)
 	if !ok {
 		st := status.New(codes.Internal, "failed to cast request as 'VersionerRequest'")
@@ -103,4 +102,4 @@ func (v *VersionerRequest) Finalize() error {
 	return v.finalize()
 }
 
-var _ arbiter.Request = (*VersionerRequest)(nil)
+var _ interfaces.Request = (*VersionerRequest)(nil)

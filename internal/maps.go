@@ -1,4 +1,6 @@
-package arbiter
+package internal
+
+import "github.com/btsomogyi/arbiter/interfaces"
 
 type messageMap struct {
 	msgMap map[int64]message
@@ -43,8 +45,8 @@ func (mm *messageMap) length() int {
 }
 
 // Dump returns all key/values in messageMap for debugging purposes.
-func (mm *messageMap) dump() []Request {
-	var dump []Request
+func (mm *messageMap) dump() []interfaces.Request {
+	var dump []interfaces.Request
 	for _, v := range mm.msgMap {
 		dump = append(dump, v.request())
 	}

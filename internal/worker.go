@@ -1,7 +1,8 @@
-package arbiter
+package internal
 
 import (
 	"context"
+	"github.com/btsomogyi/arbiter/interfaces"
 	"time"
 
 	"github.com/btsomogyi/arbiter/telemetry"
@@ -18,7 +19,7 @@ type worker struct {
 	beginSent time.Time
 	endSent   time.Time
 	workStart time.Time
-	request   Request
+	request   interfaces.Request
 	signature *worker
 }
 
