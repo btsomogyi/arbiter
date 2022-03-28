@@ -6,8 +6,18 @@ import (
 	"github.com/btsomogyi/arbiter/telemetry"
 )
 
-func NewSupervisor(opts ...internal.SupervisorOption) (*internal.Supervisor, error) {
-	return internal.NewSupervisor(opts...)
+type Supervisor struct {
+	*internal.Supervisor
+}
+
+func NewSupervisor(opts ...internal.SupervisorOption) (*Supervisor, error) {
+	s, err := internal.NewSupervisor(opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &Supervisor{
+		s,
+	}, nil
 }
 
 // SetInstrumentor sets the Instrumentor for the Supervisor.

@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/btsomogyi/arbiter"
 	"github.com/btsomogyi/arbiter/example"
-	"github.com/btsomogyi/arbiter/internal"
 	"github.com/golang/protobuf/proto"
-	//"google.golang.org/protobuf/proto"
 
 	"github.com/btsomogyi/arbiter/example/examplepb"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -20,7 +19,7 @@ import (
 type Versioner struct {
 	Elements   example.Store
 	workFunc   func() error
-	Supervisor *internal.Supervisor
+	Supervisor *arbiter.Supervisor
 	examplepb.UnimplementedVersionerServer
 }
 
@@ -41,7 +40,7 @@ func SetWorkFunc(wf func() error) VersionerOption {
 }
 
 // NewVersioner constructs and returns an empty Versioner.
-func NewVersioner(s *internal.Supervisor, opts ...VersionerOption) *Versioner {
+func NewVersioner(s *arbiter.Supervisor, opts ...VersionerOption) *Versioner {
 	v := &Versioner{
 		Elements:   NewSimpleStore(),
 		Supervisor: s,
