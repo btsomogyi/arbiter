@@ -29,7 +29,7 @@ func Benchmark_randomRequests(b *testing.B) {
 		Requests    int
 		Concurrency int
 	}{
-		{100, 1},
+		/*{100, 1},
 		{100, 2},
 		{100, 4},
 		{100, 8},
@@ -51,7 +51,14 @@ func Benchmark_randomRequests(b *testing.B) {
 		{5000, 48},
 		{5000, 96},
 		{5000, 144},
-		{5000, 192},
+		{5000, 192},*/
+		{50000, 24},
+		{50000, 48},
+		{50000, 96},
+		{50000, 144},
+		{50000, 192},
+		{50000, 384},
+		{50000, 768},
 	}
 
 	r := rand.New(rand.NewSource(int64(randomSeed)))

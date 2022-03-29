@@ -31,29 +31,37 @@ func Benchmark_randomRequests(b *testing.B) {
 		Requests    int
 		Concurrency int
 	}{
-		{100, 1},
-		{100, 2},
-		{100, 4},
-		{100, 8},
-		{100, 12},
-		{100, 24},
-		{500, 1},
-		{500, 2},
-		{500, 4},
-		{500, 8},
-		{500, 12},
-		{500, 24},
-		{500, 48},
-		{5000, 1},
-		{5000, 2},
-		{5000, 4},
-		{5000, 8},
-		{5000, 12},
-		{5000, 24},
-		{5000, 48},
-		{5000, 96},
-		{5000, 144},
-		{5000, 192},
+		/*
+			{100, 1},
+			{100, 2},
+			{100, 4},
+			{100, 8},
+			{100, 12},
+			{100, 24},
+			{500, 1},
+			{500, 2},
+			{500, 4},
+			{500, 8},
+			{500, 12},
+			{500, 24},
+			{500, 48},
+			{5000, 1},
+			{5000, 2},
+			{5000, 4},
+			{5000, 8},
+			{5000, 12},
+			{5000, 24},
+			{5000, 48},
+			{5000, 96},
+			{5000, 144},
+			{5000, 192},*/
+		{50000, 24},
+		{50000, 48},
+		{50000, 96},
+		{50000, 144},
+		{50000, 192},
+		{50000, 384},
+		{50000, 768},
 	}
 
 	r := rand.New(rand.NewSource(int64(randomSeed)))
@@ -150,7 +158,6 @@ func Benchmark_randomRequests(b *testing.B) {
 							case req := <-queue:
 								_, err := client.UpdateVersion(context.Background(), req)
 
-								//b.Logf("Received work response: %e", err)
 								if err != nil {
 									// Lookup grpc status code, and ignore if expected.
 									st, ok := status.FromError(err)

@@ -14,6 +14,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var _ examplepb.VersionerServer = (*Versioner)(nil)
+
 // Versioner implements the Examplepb GRPC interface using the trivial record backing
 // store of an SimpleStore.
 type Versioner struct {
