@@ -54,6 +54,13 @@ func Benchmark_randomRequests(b *testing.B) {
 		{5000, 96},
 		{5000, 144},
 		{5000, 192},
+		{50000, 24},
+		{50000, 48},
+		{50000, 96},
+		{50000, 144},
+		{50000, 192},
+		{50000, 384},
+		{50000, 768},
 	}
 
 	r := rand.New(rand.NewSource(int64(randomSeed)))
@@ -150,7 +157,6 @@ func Benchmark_randomRequests(b *testing.B) {
 							case req := <-queue:
 								_, err := client.UpdateVersion(context.Background(), req)
 
-								//b.Logf("Received work response: %e", err)
 								if err != nil {
 									// Lookup grpc status code, and ignore if expected.
 									st, ok := status.FromError(err)

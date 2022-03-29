@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/btsomogyi/arbiter/internal"
+	"github.com/btsomogyi/arbiter"
 	"log"
 	"net"
 
@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	supervisor, err := internal.NewSupervisor()
+	supervisor, err := arbiter.NewSupervisor()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -21,7 +21,7 @@ func main() {
 	go exampleServer(supervisor)
 }
 
-func exampleServer(s *internal.Supervisor) {
+func exampleServer(s *arbiter.Supervisor) {
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
