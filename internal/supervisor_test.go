@@ -1,11 +1,10 @@
-package internal_test
+package internal
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"github.com/btsomogyi/arbiter/interfaces"
-	a "github.com/btsomogyi/arbiter/internal"
 	"go.uber.org/zap/zapcore"
 	"math/rand"
 	"sync"
@@ -1060,7 +1059,7 @@ func debugLog(t *testing.T, format string, args ...interface{}) {
 	}
 }
 
-func testSetupWithPollingAndSupervisorLogging(t *testing.T) (*a.Supervisor, chan struct{}, *mtxMap, context.Context, *sync.WaitGroup, *at.LocalInstrumentor, error) {
+func testSetupWithPollingAndSupervisorLogging(t *testing.T) (*Supervisor, chan struct{}, *mtxMap, context.Context, *sync.WaitGroup, *at.LocalInstrumentor, error) {
 	done := make(chan struct{})
 	pollDone := func() {
 		done <- struct{}{}
@@ -1068,34 +1067,34 @@ func testSetupWithPollingAndSupervisorLogging(t *testing.T) (*a.Supervisor, chan
 
 	ws := zapcore.AddSync(testWriter{t})
 	logger := logging.NewZapLogger(ws)
-	supervisorOptions := []a.SupervisorOption{
-		a.SetPollFunction(pollDone),
-		a.SetLogger(logger),
+	supervisorOptions := []SupervisorOption{
+		SetPollFunction(pollDone),
+		SetLogger(logger),
 	}
 	s, m, c, w, f, e := testSetup(supervisorOptions...)
 	return s, done, m, c, w, f, e
 }
 
-func testSetupWithPolling() (*a.Supervisor, chan struct{}, *mtxMap, context.Context, *sync.WaitGroup, *at.LocalInstrumentor, error) {
+func testSetupWithPolling() (*Supervisor, chan struct{}, *mtxMap, context.Context, *sync.WaitGroup, *at.LocalInstrumentor, error) {
 	done := make(chan struct{})
 	pollDone := func() {
 		done <- struct{}{}
 	}
 
-	supervisorOptions := []a.SupervisorOption{
-		a.SetPollFunction(pollDone),
+	supervisorOptions := []SupervisorOption{
+		SetPollFunction(pollDone),
 	}
 	s, m, c, w, f, e := testSetup(supervisorOptions...)
 	return s, done, m, c, w, f, e
 }
 
-func testSetup(opts ...a.SupervisorOption) (*a.Supervisor, *mtxMap, context.Context, *sync.WaitGroup, *at.LocalInstrumentor, error) {
+func testSetup(opts ...SupervisorOption) (*Supervisor, *mtxMap, context.Context, *sync.WaitGroup, *at.LocalInstrumentor, error) {
 	li := at.NewLocalInstrumentor()
-	supervisorOptions := []a.SupervisorOption{
-		a.SetInstrumentor(li),
+	supervisorOptions := []SupervisorOption{
+		SetInstrumentor(li),
 	}
 	supervisorOptions = append(supervisorOptions, opts...)
-	arbiter, err := a.NewSupervisor(supervisorOptions...)
+	arbiter, err := NewSupervisor(supervisorOptions...)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
